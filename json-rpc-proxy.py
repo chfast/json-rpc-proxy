@@ -33,6 +33,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         request_length = int(self.headers['Content-Length'])
         request_content = self.rfile.read(request_length)
+        # self.log_message("Headers:  {}".format(self.headers))
         self.log_message("Request:  {}".format(request_content))
 
         response_content = self.server.process(request_content)
@@ -40,6 +41,7 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
         self.send_response(200)
         self.send_header("Content-type", "application/json")
+        self.send_header("Content-length", len(response_content))
         self.end_headers()
         self.wfile.write(response_content)
 
@@ -67,9 +69,12 @@ class Proxy(HTTPServer):
         response = b''
         while True:
             r = self.sock.recv(BUFSIZE)
-            response += r
-            if not r or r[-1] == DELIMITER:
+            if not r:
                 break
+            if r[-1] == DELIMITER:
+                response += r[:-1]
+                break
+            response += r
 
         return response
 
