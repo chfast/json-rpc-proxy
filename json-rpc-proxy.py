@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from argparse import ArgumentParser
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from os import path
 from urllib.parse import urlparse
@@ -45,13 +46,18 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 class Proxy(HTTPServer):
 
-    def __init__(self, server_address, client_url):
+    def __init__(self, server_url, client_url):
+
+        server_url = urlparse(server_url)
+        assert server_url.scheme == 'http'
+        server_address = server_url.hostname, server_url.port
+
+        client_url = urlparse(client_url)
+        assert client_url.scheme == 'unix'
+
         super(Proxy, self).__init__(server_address, HTTPRequestHandler)
 
-        url = urlparse(client_url)
-        assert url.scheme == 'unix'
-
-        self.client_address = path.expanduser(url.path)
+        self.client_address = path.expanduser(client_url.path)
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.sock.connect(self.client_address)
 
@@ -69,9 +75,15 @@ class Proxy(HTTPServer):
 
 
 def run():
-    server_address = ('127.0.0.1', 8545)
-    client_url = 'unix:~/.ethereum/geth.ipc'
-    proxy = Proxy(server_address, client_url)
+    parser = ArgumentParser()
+    parser.add_argument('client_url', nargs='?',
+                        default='unix:~/.ethereum/geth.ipc',
+                        help="Client URL")
+    parser.add_argument('server_url', nargs='?',
+                        default='http://127.0.0.1:8545',
+                        help="Server URL")
+    args = parser.parse_args()
+    proxy = Proxy(args.server_url, args.client_url)
     proxy.serve_forever()
 
 
