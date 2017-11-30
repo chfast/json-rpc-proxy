@@ -13,8 +13,8 @@ DELIMITER = ord('\n')
 INFO = """JSON-RPC Proxy
 
 Version: {}
-Client: {}
-Server: {}
+Proxy: {}
+Backend: {}
 """
 
 
@@ -24,10 +24,10 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
-        client_url = 'unix:' + self.server.client_address
-        server_url = '{}:{}'.format(self.server.server_name,
-                                    self.server.server_port)
-        info = INFO.format(VERSION, client_url, server_url)
+        backend_url = 'unix:' + self.server.backend_address
+        proxy_url = '{}:{}'.format(self.server.server_name,
+                                   self.server.server_port)
+        info = INFO.format(VERSION, backend_url, proxy_url)
         self.wfile.write(info.encode('utf-8'))
 
     def do_POST(self):
@@ -48,20 +48,20 @@ class HTTPRequestHandler(BaseHTTPRequestHandler):
 
 class Proxy(HTTPServer):
 
-    def __init__(self, server_url, client_url):
+    def __init__(self, proxy_url, backend_url):
 
-        server_url = urlparse(server_url)
-        assert server_url.scheme == 'http'
-        server_address = server_url.hostname, server_url.port
+        proxy_url = urlparse(proxy_url)
+        assert proxy_url.scheme == 'http'
+        proxy_address = proxy_url.hostname, proxy_url.port
 
-        client_url = urlparse(client_url)
-        assert client_url.scheme == 'unix'
+        backend_url = urlparse(backend_url)
+        assert backend_url.scheme == 'unix'
 
-        super(Proxy, self).__init__(server_address, HTTPRequestHandler)
+        super(Proxy, self).__init__(proxy_address, HTTPRequestHandler)
 
-        self.client_address = path.expanduser(client_url.path)
+        self.backend_address = path.expanduser(backend_url.path)
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.sock.connect(self.client_address)
+        self.sock.connect(self.backend_address)
 
     def process(self, request):
         self.sock.sendall(request)
@@ -81,14 +81,14 @@ class Proxy(HTTPServer):
 
 def run():
     parser = ArgumentParser()
-    parser.add_argument('client_url', nargs='?',
+    parser.add_argument('backend_url', nargs='?',
                         default='unix:~/.ethereum/geth.ipc',
-                        help="Client URL")
-    parser.add_argument('server_url', nargs='?',
+                        help="URL to a backend RPC sever")
+    parser.add_argument('proxy_url', nargs='?',
                         default='http://127.0.0.1:8545',
-                        help="Server URL")
+                        help="URL for this proxy server")
     args = parser.parse_args()
-    proxy = Proxy(args.server_url, args.client_url)
+    proxy = Proxy(args.proxy_url, args.backend_url)
     proxy.serve_forever()
 
 
