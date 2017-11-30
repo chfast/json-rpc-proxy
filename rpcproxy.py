@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# Build with cython:
+#
+# cython rpcproxy.py --embed
+# gcc -O3 -I /usr/include/python3.5m -o rpcproxy rpcproxy.c \
+# -Wl,-Bstatic -lpython3.5m -lz -lexpat -lutil -Wl,-Bdynamic -lpthread -ldl -lm
+
 from argparse import ArgumentParser
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from os import path
@@ -7,7 +13,7 @@ from urllib.parse import urlparse
 import socket
 
 
-VERSION = '0.0.0'
+VERSION = '0.1.0a1'
 BUFSIZE = 32
 DELIMITER = ord('\n')
 INFO = """JSON-RPC Proxy
