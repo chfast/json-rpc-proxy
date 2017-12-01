@@ -1,12 +1,20 @@
 #!/usr/bin/env python3
 
-# Build with cython:
-#
-# cython rpcproxy.py --embed
-# gcc -O3 -I /usr/include/python3.5m -o rpcproxy rpcproxy.c \
-# -Wl,-Bstatic -lpython3.5m -lz -lexpat -lutil -Wl,-Bdynamic -lpthread -ldl -lm
+"""
+JSON-RPC Proxy
 
-from argparse import ArgumentParser
+This Python script provides HTTP proxy to Unix Socket based JSON-RPC servers.
+Check out --help option for more information.
+
+Build with cython:
+
+cython rpcproxy.py --embed
+gcc -O3 -I /usr/include/python3.5m -o rpcproxy rpcproxy.c \
+-Wl,-Bstatic -lpython3.5m -lz -lexpat -lutil -Wl,-Bdynamic -lpthread -ldl -lm
+
+"""
+
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from os import path
 from urllib.parse import urlparse
@@ -86,7 +94,10 @@ class Proxy(HTTPServer):
 
 
 def run():
-    parser = ArgumentParser()
+    parser = ArgumentParser(
+        description='HTTP Proxy for JSON-RPC servers',
+        formatter_class=ArgumentDefaultsHelpFormatter
+    )
     parser.add_argument('backend_url', nargs='?',
                         default='unix:~/.ethereum/geth.ipc',
                         help="URL to a backend RPC sever")
